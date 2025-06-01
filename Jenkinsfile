@@ -1,47 +1,47 @@
-@Library('Shared@') _
+@Library("Shared")  _
 pipeline{
     
-    agent {label 'agent1'}
+    agent { label 'agent1'}
     
     stages{
-        
-         stage('Hello'){
+        stage("Hello"){
             steps{
-               script {
-                   hello()
-               }
-            }
-        }
-        stage('Code'){
-            steps{
-             script{
-                clone('https://github.com/vickykumawat/django-notes-app.git', 'main')
+                script{
+                    hello()
                 }
             }
         }
-        stage('Build'){
-           steps{
-                script {
-                    build('vickykumawat','notes-app','latest')
-                }
-            } 
-        }
-        stage('Push to DockerHub'){
-          steps{
-              script {
-                  docker_push('vickykumawat','notes-app','latest','dockerhublogin')
-              }  
-            } 
-        }
-        
-        stage('Deploy'){
+        stage("code"){
             steps{
-                script {
-                    deploy()
+                echo "This is cloning the code"
+                git url: 'https://github.com/vickykumawat/django-notes-app.git', branch: 'main'
+                echo "Code is cloned successfully"
+            }
+            
+        }
+         stage("Build"){
+            steps{
+                echo "This is the building the code"
+                sh 'whoami'
+                sh 'docker build -t notes-app:latest .'
+                echo "Build is Successfully"
+            }
+        }
+        stage("Push to DockerHUb"){
+            steps{
+                echo "This is pushing the image to dockerHubb"
+                withCredentials([usernamePassword(credentialsId:"dockerhub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
+                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                sh "docker tag notes-app:latest ${env.dockerHubUser}/notes-app:latest"
+                sh "docker push ${env.dockerHubUser}/notes-app:latest"
                 }
             }
         }
-        
-        
+        stage("Deploy"){
+            steps{
+                echo "Thi is deploying the code" 
+                sh 'docker compose up -d'
+            }
+        }
     }
 }
